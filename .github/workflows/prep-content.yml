@@ -1,0 +1,36 @@
+name: Prepare Content Drafts
+
+on:
+  schedule:
+    - cron: "30 2 * * 1,4"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-drafts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Gemini SDK
+        run: pip install google-genai
+
+      - name: Generate drafts for upcoming posts
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scripts/prepare_drafts.py
+
+      - name: Commit generated drafts
+        run: |
+          git config user.name "content-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add queue/posts.json drafts/
+          git diff --staged --quiet || (git commit -m "chore: generate upcoming content drafts" && git push)
