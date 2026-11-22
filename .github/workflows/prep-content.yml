@@ -28,13 +28,16 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/prepare_drafts.py
 
-      - name: Commit generated drafts
+      - name: Build companion site feed
+        run: python scripts/build_site_feed.py
+
+      - name: Commit generated drafts and feed
         run: |
           git config user.name "content-bot"
           git config user.email "bot@users.noreply.github.com"
-          git add queue/posts.json drafts/
+          git add queue/posts.json drafts/ site-data/
           if ! git diff --staged --quiet; then
-            git commit -m "chore: generate upcoming content drafts"
+            git commit -m "chore: generate drafts and update companion feed"
             git pull --rebase origin main
             git push
           fi
