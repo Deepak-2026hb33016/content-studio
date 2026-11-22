@@ -2,7 +2,7 @@
   {
     "id": "post-001",
     "scheduled_date": "2026-11-26",
-    "status": "idea",
+    "status": "approved",
     "evergreen": false,
     "pillar": "STRUCTURAL LOGIC",
     "raw_note": "Teams treat CMS authoring like typing text, ignoring component governance and handoff lag between PM, dev, and authors.",
