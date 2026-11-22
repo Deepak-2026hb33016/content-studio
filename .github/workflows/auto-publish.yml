@@ -1,0 +1,43 @@
+name: Auto-Publish Blog Pages & LinkedIn Kit
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site-data/insights/**"
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout content-studio
+        uses: actions/checkout@v4
+        with:
+          path: studio
+
+      - name: Checkout deepakkondappa.codes repo
+        uses: actions/checkout@v4
+        with:
+          repository: Deepak-2026hb33016/Deepak-2026hb33016.github.io
+          token: ${{ secrets.PORTFOLIO_SYNC_TOKEN }}
+          path: portfolio
+
+      - name: Generate /blog-N Pages & Sitemap
+        run: node studio/scripts/build-and-sync.mjs
+
+      - name: Commit & Deploy to deepakkondappa.codes
+        run: |
+          cd portfolio
+          git config user.name "content-studio-publisher"
+          git config user.email "actions@users.noreply.github.com"
+          git add blog-* site-data/insights sitemap.xml
+          git diff --cached --quiet || git commit -m "chore(blog): auto-publish field notes"
+          git push
+
+      - name: Output Ready-to-Post LinkedIn Copy
+        if: hashFiles('linkedin-ready.txt') != ''
+        run: |
+          echo "### Ready-to-Post LinkedIn Copy" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          cat linkedin-ready.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
