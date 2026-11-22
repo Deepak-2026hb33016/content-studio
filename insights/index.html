@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Companion Insights | Deepak Kondappa</title>
+  <style>
+    :root {
+      --bg: #07080a;
+      --surface: #111318;
+      --border: #232732;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --accent: #f5b942;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      line-height: 1.65;
+      padding: 2rem 1.25rem 4rem;
+    }
+    .wrap { max-width: 780px; margin: 0 auto; }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2.5rem;
+      font-size: 0.9rem;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .pill {
+      display: inline-block;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--border);
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      margin-bottom: 0.75rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    h1 { font-size: 2rem; line-height: 1.2; margin: 0.4rem 0 0.75rem; }
+    h2 { font-size: 1.2rem; margin: 1.5rem 0 0.5rem; color: var(--text); }
+    p { color: var(--text); margin: 0 0 0.9rem; }
+    .muted { color: var(--muted); font-size: 0.92rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <a href="https://deepakkondappa.codes/">← Back to deepakkondappa.codes</a>
+      <a href="./">All Companion Notes</a>
+    </div>
+    <main id="app">Loading companion note…</main>
+  </div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const slugParam = params.get("post");
+    const app = document.getElementById("app");
+
+    async function loadList() {
+      const res = await fetch("../site-data/insights/index.json");
+      const items = await res.json();
+      if (!items.length) {
+        app.innerHTML = `<div class="card"><h1>No published companion notes yet</h1><p class="muted">Set a post's status to "approved" or "published" in queue/posts.json and run the workflow.</p></div>`;
+        return;
+      }
+      app.innerHTML = `<h1>Companion Deep Dives</h1><p class="muted">Architectural trade-offs, workflow breakdowns, and checklists behind recent LinkedIn posts.</p>` +
+        items.map(item => {
+          const key = item.slug.split("/").pop();
+          return `<div class="card">
+            <div class="pill">${item.pillar || "Insight"}</div>
+            <h2 style="margin-top:0"><a href="?post=${encodeURIComponent(key)}">${item.title}</a></h2>
+            <p class="muted">${item.scheduled_date || ""}</p>
+            <p>${item.summary || ""}</p>
+          </div>`;
+        }).join("");
+    }
+
+    async function loadArticle(key) {
+      const res = await fetch(`../site-data/insights/${encodeURIComponent(key)}.json`);
+      if (!res.ok) {
+        return loadList();
+      }
+      const data = await res.json();
+      const sectionsHtml = (data.sections || [])
+        .map(sec => `<div class="card">${sec.replace(/\n/g, "<br>")}</div>`)
+        .join("");
+      app.innerHTML = `
+        <div class="pill">${data.pillar || "Insight"}</div>
+        <h1>${data.title}</h1>
+        <p class="muted">Published: ${data.scheduled_date || ""} • Reference: ${data.slug}</p>
+        <div class="card"><p><strong>Summary:</strong> ${data.summary || ""}</p></div>
+        ${sectionsHtml || `<p class="muted">No sections available yet.</p>`}
+      `;
+    }
+
+    if (slugParam) {
+      loadArticle(slugParam).catch(() => loadList());
+    } else {
+      loadList().catch(() => {
+        app.innerHTML = `<div class="card"><p>Run the workflow after approving a post to generate <code>site-data/insights/index.json</code>.</p></div>`;
+      });
+    }
+  </script>
+</body>
+</html>
