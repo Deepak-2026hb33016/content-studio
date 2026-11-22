@@ -1,6 +1,7 @@
 import json
 import os
-from datetime import datetime, timedelta
+import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from google import genai
 from google.genai import types
@@ -24,16 +25,29 @@ Rules:
 """
 
 def main():
-    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        print("ERROR: GEMINI_API_KEY secret is missing or empty.", file=sys.stderr)
+        sys.exit(1)
+
+    if not QUEUE_PATH.exists():
+        print(f"ERROR: {QUEUE_PATH} not found.", file=sys.stderr)
+        sys.exit(1)
+
     posts = json.loads(QUEUE_PATH.read_text(encoding="utf-8"))
-    horizon = datetime.utcnow().date() + timedelta(days=10)
+    today = datetime.now(timezone.utc).date()
+    horizon = today + timedelta(days=10)
     updated = False
+
+    client = genai.Client(api_key=api_key)
 
     for post in posts:
         if post.get("status") != "idea":
             continue
         sched = datetime.strptime(post["scheduled_date"], "%Y-%m-%d").date()
+        print(f"Checking {post['id']} (scheduled {sched}, horizon {horizon})")
         if sched <= horizon:
+            print(f"Generating draft for {post['id']}...")
             prompt = f"""
             Pillar: {post.get('pillar', 'Systems & Operations')}
             Scheduled Date: {post['scheduled_date']}
@@ -41,7 +55,7 @@ def main():
             Raw Note: {post['raw_note']}
             """
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.5-flash-lite",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,
@@ -95,9 +109,13 @@ def main():
                 + "\n\n".join(data["companion_sections"]) + "\n"
             )
             (DRAFTS_DIR / f"{post['id']}.md").write_text(md, encoding="utf-8")
+            print(f"Saved drafts/{post['id']}.md")
 
     if updated:
         QUEUE_PATH.write_text(json.dumps(posts, indent=2), encoding="utf-8")
+        print("Updated queue/posts.json")
+    else:
+        print("No 'idea' posts within the upcoming window.")
 
 if __name__ == "__main__":
     main()
