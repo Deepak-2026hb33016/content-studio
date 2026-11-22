@@ -1,0 +1,18 @@
+[
+  {
+    "id": "post-001",
+    "scheduled_date": "2026-11-26",
+    "status": "idea",
+    "pillar": "STRUCTURAL LOGIC",
+    "raw_note": "Teams treat CMS authoring like typing text, ignoring component governance and handoff lag between PM, dev, and authors.",
+    "website_slug": "/insights/cms-handoff-lag",
+    "linkedin_post": "",
+    "first_comment": "",
+    "carousel_outline": [],
+    "companion_article": {
+      "title": "",
+      "summary": "",
+      "sections": []
+    }
+  }
+]
